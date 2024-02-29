@@ -12,8 +12,19 @@ export async function user(userId: number) {
   _user.use(express.json());
   _user.use(bodyParser.json());
 
+  let lastSentMessage: string | null = null;
+  let lastReceivedMessage: string | null = null;
+
   _user.get("/status", (req, res) => {
     res.status(200).send('live');
+  });
+
+  _user.get("/getLastReceivedMessage", (req, res) => {
+    res.json({result: lastReceivedMessage });
+  });
+
+  _user.get("/getLastSentMessage", (req, res) => {
+    res.json({result: lastSentMessage });
   });
 
   const server = _user.listen(BASE_USER_PORT + userId, () => {
