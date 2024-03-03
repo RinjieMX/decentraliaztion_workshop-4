@@ -14,10 +14,6 @@ import {
 import { error } from 'console';
 import { Node } from "../registry/registry";
 
-let circuit: Node[] | null = null;
-let lastReceivedDecryptedMessage: string | null = null;
-let lastSentDecryptedMessage: string | null = null;
-
 export type SendMessageBody = {
   message: string | null;
   destinationUserId: number | null;
@@ -27,6 +23,10 @@ export async function user(userId: number) {
   const _user = express();
   _user.use(express.json());
   _user.use(bodyParser.json());
+
+  let lastReceivedDecryptedMessage: string | null = null;
+  let lastSentDecryptedMessage: string | null = null;
+  let lastCircuit: Node[] = [];
 
   _user.get("/status", (req, res) => {
     res.status(200).send('live');
@@ -41,8 +41,8 @@ export async function user(userId: number) {
   });
 
   _user.get("/getLastCircuit", (req, res) => {
-    if (circuit != null){
-      res.status(200).json({ result: circuit.map(node => node.nodeId) });
+    if (lastCircuit != null){
+      res.status(200).json({ result: lastCircuit.map((node) => node.nodeId) });
     }
     else{
       res.status(404).send("No circuit has been created yet !");
@@ -50,29 +50,29 @@ export async function user(userId: number) {
   });
 
   _user.post("/message", (req, res) => {
-    const mess = req.body.message;
-    lastReceivedDecryptedMessage = mess;
+    const { message } = req.body;
+    lastReceivedDecryptedMessage = message;
     res.status(200).send("success");
   });
 
   _user.post("/sendMessage", async (req, res) => {
-    const body = req.body;
+    const { message, destinationUserId } = req.body;
 
-    lastSentDecryptedMessage = body.message;
+    let listNode: Node[] = [];
 
     const getregistry = await axios.get(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
     const nodes =  getregistry.data.nodes as Node[];
 
-    const listNode: Node[] = [];
     while (listNode.length < 3) {
-      let random = nodes[Math.floor(Math.random()* nodes.length)];
-      if (!listNode.includes(random)){
-        listNode.push(random);
+      let randomindex = Math.floor(Math.random()* nodes.length);
+      if (!listNode.includes(nodes[randomindex])){
+        listNode.push(nodes[randomindex]);
       }
     }
 
-    let encryptedMessage = body.message;
-    let destination = String(BASE_USER_PORT + body.destid).padStart(10, '0');
+    lastSentDecryptedMessage = message;
+    let encryptedMessage = message;
+    let destination = String(BASE_USER_PORT + destinationUserId).padStart(10, '0');
 
     for (const node of listNode) {
       const symKeys = await createRandomSymmetricKey();
@@ -85,19 +85,13 @@ export async function user(userId: number) {
     }
 
     listNode.reverse();
-    circuit = listNode;
+    lastCircuit = listNode;
 
     // Envoyer le message chiffré au premier nœud du circuit
-      try{
-        lastSentDecryptedMessage = body.message;
-        await axios.post(`http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0].nodeId}/message`, {
-          message: encryptedMessage,
-        });
-        res.status(200).send("Message sent successfully through the circuit.");
-      }
-      catch (error) {
-        res.status(404).send("Message has not been sent.");
-      }
+    await axios.post(`http://localhost:${BASE_ONION_ROUTER_PORT + lastCircuit[0].nodeId}/message`, {
+      message: encryptedMessage,
+    });
+    res.status(200).send("Message sent successfully through the circuit.");
   });
 
   const server = _user.listen(BASE_USER_PORT + userId, () => {

@@ -60,10 +60,10 @@ export async function simpleOnionRouter(nodeId: number) {
       lastReceivedEncryptedMessage = message;
       lastReceivedDecryptedMessage = originalMessage;
 
-      await axios.post(`http://localhost:${destinationId}/message`, {
+      await axios.post(`http://localhost:${lastMessageDestination}/message`, {
         message: originalMessage
       });
-      res.status(200).send("Message transferred successfully.");
+      res.status(200).send("success");
     } catch (error) {
       console.error("Error processing message:", error);
       res.status(500).send("Error processing message.");
