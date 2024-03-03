@@ -5,13 +5,10 @@ import axios from 'axios';
 import {
   createRandomSymmetricKey,
   rsaEncrypt,
-  rsaDecrypt,
   symEncrypt,
-  symDecrypt,
   exportSymKey,
-  importPrvKey, importSymKey
+  importSymKey
 } from "../crypto";
-import { error } from 'console';
 import { Node } from "../registry/registry";
 
 export type SendMessageBody = {
