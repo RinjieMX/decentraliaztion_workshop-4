@@ -1,7 +1,6 @@
 import bodyParser from "body-parser";
 import express, { Request, Response } from "express";
 import { REGISTRY_PORT } from "../config";
-import { error } from "console";
 
 export type Node = { nodeId: number; pubKey: string };
 
@@ -26,7 +25,7 @@ export async function launchRegistry() {
   const nodes: Node[] = [];
 
   _registry.post("/registerNode", async (req, res) => {
-    const body = req.body;
+    const body = req.body as RegisterNodeBody;
 
     const index = nodes.some(n => n.nodeId === body.nodeId);
     if (index) {
@@ -38,7 +37,7 @@ export async function launchRegistry() {
   });
 
   _registry.get("/getNodeRegistry", (req: Request, res: Response) => {
-    res.json({ nodes });
+    res.status(200).json({ nodes });
   });
 
   const server = _registry.listen(REGISTRY_PORT, () => {

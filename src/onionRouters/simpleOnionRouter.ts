@@ -1,17 +1,14 @@
 import bodyParser from "body-parser";
 import express from "express";
-import { BASE_ONION_ROUTER_PORT, REGISTRY_PORT, BASE_USER_PORT } from "../config";
+import { BASE_ONION_ROUTER_PORT, REGISTRY_PORT } from "../config";
 import axios from 'axios';
 import {
-  exportSymKey,
-  importSymKey,
   rsaDecrypt,
   symDecrypt,
   exportPrvKey,
   exportPubKey,
   generateRsaKeyPair
 } from "../crypto";
-import { error } from "console";
 
 export async function simpleOnionRouter(nodeId: number) {
   const onionRouter = express();
@@ -33,11 +30,11 @@ export async function simpleOnionRouter(nodeId: number) {
     res.json({ result: lastReceivedEncryptedMessage });
   });
 
-  onionRouter.get("/getLastReceivedDecryptedMessage", async (req, res) => {
+  onionRouter.get("/getLastReceivedDecryptedMessage", (req, res) => {
     res.json({ result: lastReceivedDecryptedMessage });
   });
 
-  onionRouter.get("/getLastMessageDestination", async (req, res) => {
+  onionRouter.get("/getLastMessageDestination", (req, res) => {
     res.json({ result: lastMessageDestination });
   });
 
@@ -48,6 +45,8 @@ export async function simpleOnionRouter(nodeId: number) {
 
   onionRouter.post('/message', async (req, res) => {
     const { message } = req.body;
+
+    try {
       const encryptedKey = message.slice(0, 344);
       const restMessage = message.slice(344);
 
@@ -61,14 +60,13 @@ export async function simpleOnionRouter(nodeId: number) {
       lastReceivedEncryptedMessage = message;
       lastReceivedDecryptedMessage = originalMessage;
 
-    try {
       await axios.post(`http://localhost:${destinationId}/message`, {
         message: originalMessage
       });
-      return res.status(200).send("Message transferred successfully.");
+      res.status(200).send("Message transferred successfully.");
     } catch (error) {
       console.error("Error processing message:", error);
-      return res.status(500).send("Error processing message.");
+      res.status(500).send("Error processing message.");
     }
   });
 

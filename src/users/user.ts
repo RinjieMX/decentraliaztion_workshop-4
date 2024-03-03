@@ -83,19 +83,21 @@ export async function user(userId: number) {
       const encryptedKey = await rsaEncrypt(symKeyString, node.pubKey);
       encryptedMessage = encryptedKey + Message1;
     }
+
     listNode.reverse();
     circuit = listNode;
 
     // Envoyer le message chiffré au premier nœud du circuit
-    try{
-      await axios.post(`http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0].nodeId}/message`, {
-        message: encryptedMessage,
-      });
-    } catch (error: any) {
-      console.error('Error posting message:', error.response?.data || error.message);
-    }
-
-    return res.send("Message sent successfully through the circuit.");
+      try{
+        lastSentDecryptedMessage = body.message;
+        await axios.post(`http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0].nodeId}/message`, {
+          message: encryptedMessage,
+        });
+        res.status(200).send("Message sent successfully through the circuit.");
+      }
+      catch (error) {
+        res.status(404).send("Message has not been sent.");
+      }
   });
 
   const server = _user.listen(BASE_USER_PORT + userId, () => {
