@@ -33,11 +33,11 @@ export async function simpleOnionRouter(nodeId: number) {
     res.json({ result: lastReceivedEncryptedMessage });
   });
 
-  onionRouter.get("/getLastReceivedDecryptedMessage", (req, res) => {
+  onionRouter.get("/getLastReceivedDecryptedMessage", async (req, res) => {
     res.json({ result: lastReceivedDecryptedMessage });
   });
 
-  onionRouter.get("/getLastMessageDestination", (req, res) => {
+  onionRouter.get("/getLastMessageDestination", async (req, res) => {
     res.json({ result: lastMessageDestination });
   });
 

@@ -1,6 +1,5 @@
 import { webcrypto } from "crypto";
 import * as process from "process";
-import { error } from "console";
 
 // #############
 // ### Utils ###
@@ -37,7 +36,6 @@ export async function generateRsaKeyPair(): Promise<GenerateRsaKeyPair> {
       true,
       ["encrypt", "decrypt"],
   );
-  error(await exportPubKey(publicKey));
   return { publicKey, privateKey };
 }
 

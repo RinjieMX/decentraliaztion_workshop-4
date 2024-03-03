@@ -33,18 +33,19 @@ export async function user(userId: number) {
   });
 
   _user.get("/getLastReceivedMessage", (req, res) => {
-    error(lastReceivedDecryptedMessage);
     res.json({ result: lastReceivedDecryptedMessage });
   });
 
   _user.get("/getLastSentMessage", (req, res) => {
-    error(lastSentDecryptedMessage);
     res.json({result: lastSentDecryptedMessage });
   });
 
   _user.get("/getLastCircuit", (req, res) => {
     if (circuit != null){
-      res.status(200).json({result: circuit.map(node => node.nodeId)});
+      res.status(200).json({ result: circuit.map(node => node.nodeId) });
+    }
+    else{
+      res.status(404).send("No circuit has been created yet !");
     }
   });
 
@@ -90,7 +91,6 @@ export async function user(userId: number) {
       await axios.post(`http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0].nodeId}/message`, {
         message: encryptedMessage,
       });
-      lastSentDecryptedMessage = encryptedMessage;
     } catch (error: any) {
       console.error('Error posting message:', error.response?.data || error.message);
     }
