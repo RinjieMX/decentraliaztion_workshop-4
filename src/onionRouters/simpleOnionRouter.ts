@@ -1,6 +1,17 @@
 import bodyParser from "body-parser";
 import express from "express";
-import { BASE_ONION_ROUTER_PORT } from "../config";
+import { BASE_ONION_ROUTER_PORT, REGISTRY_PORT, BASE_USER_PORT } from "../config";
+import axios from 'axios';
+import {
+  exportSymKey,
+  importSymKey,
+  rsaDecrypt,
+  symDecrypt,
+  exportPrvKey,
+  exportPubKey,
+  generateRsaKeyPair
+} from "../crypto";
+import { error } from "console";
 
 export async function simpleOnionRouter(nodeId: number) {
   const onionRouter = express();
@@ -10,6 +21,9 @@ export async function simpleOnionRouter(nodeId: number) {
   let lastReceivedEncryptedMessage: string | null = null;
   let lastReceivedDecryptedMessage: string | null = null;
   let lastMessageDestination: number | null = null;
+
+  const { publicKey, privateKey} = await generateRsaKeyPair();
+  const pubKey = await exportPubKey(publicKey);
 
   onionRouter.get("/status", (req, res) => {
     res.status(200).send('live');
@@ -27,12 +41,48 @@ export async function simpleOnionRouter(nodeId: number) {
     res.json({ result: lastMessageDestination });
   });
 
+  onionRouter.get("/getPrivateKey", async (req, res) => {
+    const prvKey = await exportPrvKey(privateKey);
+    return res.json({ result: prvKey });
+  });
+
+  onionRouter.post('/message', async (req, res) => {
+    const { message } = req.body;
+      const encryptedKey = message.slice(0, 344);
+      const restMessage = message.slice(344);
+
+      const decryptedsymKey = await rsaDecrypt(encryptedKey, privateKey);
+      const decryptedContent = await symDecrypt(decryptedsymKey, restMessage);
+
+      const destinationId = parseInt(decryptedContent.slice(0, 10), 10);
+      const originalMessage = decryptedContent.slice(10);
+
+      lastMessageDestination = destinationId;
+      lastReceivedEncryptedMessage = message;
+      lastReceivedDecryptedMessage = originalMessage;
+
+    try {
+      await axios.post(`http://localhost:${destinationId}/message`, {
+        message: originalMessage
+      });
+      return res.status(200).send("Message transferred successfully.");
+    } catch (error) {
+      console.error("Error processing message:", error);
+      return res.status(500).send("Error processing message.");
+    }
+  });
+
   const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
     console.log(
       `Onion router ${nodeId} is listening on port ${
         BASE_ONION_ROUTER_PORT + nodeId
       }`
     );
+  });
+
+  await axios.post(`http://localhost:${REGISTRY_PORT}/registerNode`, {
+    nodeId: nodeId,
+    pubKey: pubKey
   });
 
   return server;

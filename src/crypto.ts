@@ -37,6 +37,7 @@ export async function generateRsaKeyPair(): Promise<GenerateRsaKeyPair> {
       true,
       ["encrypt", "decrypt"],
   );
+  error(await exportPubKey(publicKey));
   return { publicKey, privateKey };
 }
 
@@ -75,17 +76,17 @@ export async function importPubKey(strKey: string ): Promise<webcrypto.CryptoKey
 
 // Import a base64 string private key to its native format
 export async function importPrvKey( strKey: string ): Promise<webcrypto.CryptoKey> {
-  let result = base64ToArrayBuffer(strKey);
-  return webcrypto.subtle.importKey(
-      "pkcs8",
-      result,
-      {
-        name: "RSA-OAEP",
-        hash: { name: "SHA-256" }
-      },
-      true,
-      ["decrypt"]
-  );
+    let result = base64ToArrayBuffer(strKey);
+    return webcrypto.subtle.importKey(
+        "pkcs8",
+        result,
+        {
+            name: "RSA-OAEP",
+            hash: { name: "SHA-256" }
+        },
+        true,
+        ["decrypt"]
+    );
 }
 
 // Encrypt a message using an RSA public key
